@@ -10,6 +10,10 @@ Ref: [lucasheld/uptime-kuma-api:latest](https://uptime-kuma-api.readthedocs.io/e
 pip install uptime-kuma-api
 ```
 
+Tested:
++ Uptime Kuma: v2.0.1beta
++ Uptime Kuma API: v1.2.1
+
 ## Usage
 
 ```sh
