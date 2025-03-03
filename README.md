@@ -7,7 +7,7 @@ Ref: [lucasheld/uptime-kuma-api:latest](https://uptime-kuma-api.readthedocs.io/e
 ## Install
 
 ```sh
-pip install uptime-kuma-api
+pip3 install uptime-kuma-api
 ```
 
 Tested:
