@@ -51,7 +51,7 @@ def export_monitors(monitors, filename="monitors.json"):
     try:
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(monitors, f, indent=4, ensure_ascii=False)
-        print(f"[✔] Danh sách Monitor đã được lưu vào: {args.output}")
+        print(f"[✔] Danh sách Monitor đã được lưu vào: {filename}")
     except Exception as e:
         print(f"[!] Lỗi khi xuất danh sách Monitor: {e}")
 
