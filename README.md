@@ -1,18 +1,40 @@
 # Uptime-API
 
-Script IaC Cấu hình Uptime Kuma sử dụng RestAPI
-
 Ref: [lucasheld/uptime-kuma-api:latest](https://uptime-kuma-api.readthedocs.io/en/latest/index.html)
 
 ## Install
 
 ```sh
-pip3 install uptime-kuma-api
+pip install uptime-kuma-api
 ```
 
-Tested:
-+ Uptime Kuma: v2.0.1beta
-+ Uptime Kuma API: v1.2.1
+## Getting Started
+
+Sample example about the configuration file from `server1` and import to `server2`
+
+```sh
+# first login to get token file
+python3 api.py -u 192.168.0.100 -a auth_server1.txt
+python3 api.py -u 192.168.0.200 -a auth_server2.txt
+```
+
+```sh
+# export notify file
+python3 api.py -u 192.168.0.100 -eN notify.json
+# export tags file
+python3 api.py -u 192.168.0.100 -eT tags.json
+# export monitors file
+python3 api.py -u 192.168.0.100 -o monitors.json
+```
+
+```sh
+# import notify file
+python3 api.py -u 192.168.0.200 -iN notify.json
+# import tags file
+python3 api.py -u 192.168.0.200 -iT tags.json
+# import monitors file
+python3 api.py -u 192.168.0.200 -i monitors.json
+```
 
 ## Usage
 
