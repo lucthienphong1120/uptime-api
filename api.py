@@ -148,14 +148,14 @@ def import_monitors(api, monitors_to_add, existing_monitors):
     # -> vì id group và id monitor là không đoán trước được nên không map được ràng buộc như trong file json
     # -> vòng lặp đầu cần import các parent trước (parentid=none) và trả về mapping name:id
     print("[+] Xử lý nhập các Parent Monitor từ json (không phụ thuộc):")
-    child_queue, added_monitors = add_parent_monitors(monitors_to_add, existing_monitors, added_monitors, child_queue)
+    child_queue, added_monitors = add_parent_monitors(api, monitors_to_add, existing_monitors, added_monitors, child_queue)
 
     # Thêm các monitor có parent **sau khi parent đã tồn tại**
     # -> lookup parent id trong json ra parent name trong json
     # -> từ parent name trong json lại lookup ra parent id mới trong mapping ở trên
     # -> gán parent id cho monitor con dựa trên mapping mới
     print(f"[+] Xử lý nhập các Child Monitor từ json (còn {len(child_queue)}):")
-    added_monitors = add_child_monitors(child_queue, json_id_to_name, added_monitors)
+    added_monitors = add_child_monitors(api, child_queue, json_id_to_name, added_monitors)
 
     print(f"[✔] Đã thêm {len(added_monitors)} Monitor")
 
@@ -163,7 +163,7 @@ def import_monitors(api, monitors_to_add, existing_monitors):
     print("[+] Xử lý nhập tags cho monitors...")
     add_monitor_tags(api, monitors_to_add, added_monitors)
 
-def add_parent_monitors(monitors_to_add, existing_monitors, added_monitors, child_queue):
+def add_parent_monitors(api, monitors_to_add, existing_monitors, added_monitors, child_queue):
     for monitor in monitors_to_add:
         if monitor.get("name") in existing_monitors:
             print(f"[!] Monitor {monitor.get('name')} đã tồn tại: Bỏ qua")
@@ -177,7 +177,7 @@ def add_parent_monitors(monitors_to_add, existing_monitors, added_monitors, chil
             child_queue.append(monitor)  # Monitor có parent sẽ xử lý sau
     return child_queue, added_monitors
 
-def add_child_monitors(child_queue, json_id_to_name, added_monitors):
+def add_child_monitors(api, child_queue, json_id_to_name, added_monitors):
     while child_queue:
         remaining_queue = []
         for monitor in child_queue:
