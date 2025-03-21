@@ -132,9 +132,24 @@ def import_notify(api, filename):
     except Exception as e:
         print(f"[x] Lỗi khi nhập Notify: {e}")
 
-# Hàm nhập Monitor từ file JSON với xử lý parent-child
+# Hàm nhập Monitor từ JSON
+def import_monitors(api, monitors, filename):
+    try:
+        with open(filename, "r", encoding="utf-8") as file:
+            imported_monitors = json.load(file)
+
+        print(f"[+] Đang thêm {len(imported_monitors)} Monitor từ {filename}...")
+
+        # Lấy danh sách pathName hiện có
+        existing_monitors = {monitor.get("name") for monitor in monitors}
+
+        handle_import_monitors(api, imported_monitors, existing_monitors)
+    except Exception as e:
+        print(f"[!] Lỗi khi đọc file {filename}: {e}")
+
+# Hàm xử lý nhập Monitor parent-child
 # Lưu ý: Việc import monitors phụ thuộc vào các khóa ngoại: parent, notification, tags
-def import_monitors(api, monitors_to_add, existing_monitors):
+def handle_import_monitors(api, monitors_to_add, existing_monitors):
     added_monitors = {}  # Lưu mapping { "name" -> new_id } sau khi thêm thành công
     json_id_to_name = {}  # Mapping { json_id -> json_name } để tra cứu tên
 
@@ -311,30 +326,7 @@ def clean_up(api, monitors):
         print(f"[x] Lỗi khi dọn dẹp dữ liệu: {e}")
 
 # Hàm xử lý chính
-def main():
-    # Xử lý tham số dòng lệnh
-    parser = argparse.ArgumentParser(description="Script IaC Cấu hình Uptime Kuma sử dụng RestAPI")
-    parser.add_argument("-u", "--host", type=str, help="IP của Host Uptime Kuma (VD: 127.0.0.1)", required=True)
-    parser.add_argument("-p", "--port", type=str, help="Chỉ định Port của Uptime Kuma (Default: 3001)", default="3001")
-    parser.add_argument("-a", "--auth", type=str, help="Đường dẫn đến file xác thực username:password (Default: auth.txt)", default="auth.txt")
-    parser.add_argument("-t", "--token", type=str, help="Chỉ định file chứa token (Default: token_ip.txt)", default=None)
-    parser.add_argument("-o", "--output", type=str, help="Xuất danh sách Monitor ra file JSON (VD: monitors.json)")
-    parser.add_argument("-i", "--input", type=str, help="Nhập danh sách Monitor từ file JSON (VD: monitors.json)")
-    parser.add_argument("-eT", "--export-tags", type=str, help="Xuất danh sách Tags ra file JSON (VD: tags.json)")
-    parser.add_argument("-iT", "--import-tags", type=str, help="Nhập danh sách Tags từ file JSON (VD: tags.json)")
-    parser.add_argument("-eN", "--export-notify", type=str, help="Xuất danh sách Notify ra file JSON (VD: notify.json)")
-    parser.add_argument("-iN", "--import-notify", type=str, help="Nhập danh sách Notify từ file JSON (VD: notify.json)")
-    parser.add_argument("-l", "--list", action="store_true", help="Liệt kê danh sách Monitor")
-    parser.add_argument("-d", "--delete", action="store_true", help="Xóa tất cả các Monitor")
-    parser.add_argument("-k", "--clean-up", action="store_true", help="Dọn dẹp dữ liệu (events, heartbeats, stats)")
-    args = parser.parse_args()
-
-    # Kiểm tra các tham số sau không được conflict
-    selected_options = sum(bool(arg) for arg in [args.input, args.output, args.list, args.delete, args.export_tags, args.import_tags, args.export_notify, args.import_notify, args.clean_up])
-    if selected_options > 1:
-        print("[x] Lỗi: Chỉ được phép sử dụng **một** trong các tham số!")
-        return
-
+def main(args):
     try:
         # Thiết lập các tham số
         URL = f"http://{args.host}:{args.port}"
@@ -347,7 +339,7 @@ def main():
         print(f"[+] Đang kết nối tới Uptime Kuma: {URL}")
         api = UptimeKumaApi(URL, timeout=120)
 
-        # Thử tải token từ tệp
+        # Thử tải token từ file
         print("[+] Kiểm tra session token hiện có")
         token = load_token(token_file)
         if token:
@@ -388,28 +380,32 @@ def main():
                 list_monitors(monitors)
             else:
                 print(f"  - Tổng cộng: {len(monitors)} Monitor")
-
-            # Nếu có tham số -o thì lưu danh sách Monitor vào file JSON
-            if args.output:
-                export_monitors(monitors, args.output)
         except Exception as e:
             print(f"[!] Lỗi khi lấy danh sách Monitor: {e}")
 
-        # Nếu có tham số -i, nhập Monitor từ file JSON
-        if args.input:
-            try:
-                with open(args.input, "r", encoding="utf-8") as file:
-                    imported_monitors = json.load(file)
-                
-                print(f"[+] Đang thêm {len(imported_monitors)} Monitor từ file {args.input}...")
+        # Nếu có tham số -eA thì lưu Notify, Tags, Monitor ra JSON
+        if args.export_all:
+            confirm = input("[+] Xuất ra các file: notify.json, tags.json, monitors.json? (y/N): ").strip().lower()
+            if confirm == 'y':
+                export_notify(api, "notify.json")
+                export_tags(api, "tags.json")
+                export_monitors(monitors, "monitors.json")
 
-                # Lấy danh sách pathName hiện có
-                existing_monitors = {monitor.get("name") for monitor in monitors}
+        # Nếu có tham số -iA thì nhập Notify, Tags, Monitor từ JSON
+        if args.import_all:
+            confirm = input("[+] Chuẩn bị các file: notify.json, tags.json, monitors.json? (y/N): ").strip().lower()
+            if confirm == 'y':
+                import_notify(api, "notify.json")
+                import_tags(api, "tags.json")
+                import_monitors(api, monitors, "monitors.json")
 
-                import_monitors(api, imported_monitors, existing_monitors)
-            
-            except Exception as e:
-                print(f"[!] Lỗi khi đọc file {args.input}: {e}")
+        # Nếu có tham số -eM thì lưu danh sách Monitor vào file JSON
+        if args.export_monitor:
+            export_monitors(monitors, args.export_monitor)
+
+        # Nếu có tham số -iM, nhập Monitor từ file JSON
+        if args.import_monitor:
+            import_monitors(api, monitors, args.import_monitor)
 
         # Nếu có tham số --export-tags, xuất danh sách tag ra file JSON
         if args.export_tags:
@@ -448,4 +444,29 @@ def main():
 
 # Chạy chương trình chính
 if __name__ == "__main__":
-    main()
+    # Xử lý tham số dòng lệnh
+    parser = argparse.ArgumentParser(description="Script IaC Cấu hình Uptime Kuma sử dụng RestAPI")
+    parser.add_argument("-u", "--host", type=str, help="IP của Host Uptime Kuma (VD: 127.0.0.1)", required=True)
+    parser.add_argument("-p", "--port", type=str, help="Chỉ định Port của Uptime Kuma (Default: 3001)", default="3001")
+    parser.add_argument("-a", "--auth", type=str, help="Đường dẫn đến file xác thực username:password (Default: auth.txt)", default="auth.txt")
+    parser.add_argument("-t", "--token", type=str, help="Chỉ định file chứa token (Default: token_ip.txt)", default=None)
+    parser.add_argument("-eA", "--export-all", action="store_true", help="Xuất toàn bộ Monitor/Notify/Tags ra filename mặc định")
+    parser.add_argument("-iA", "--import-all", action="store_true", help="Nhập toàn bộ Monitor/Notify/Tags từ filename mặc định")
+    parser.add_argument("-eM", "--export-monitor", type=str, help="Xuất danh sách Monitor ra file JSON (VD: monitors.json)")
+    parser.add_argument("-iM", "--import-monitor", type=str, help="Nhập danh sách Monitor từ file JSON (VD: monitors.json)")
+    parser.add_argument("-eT", "--export-tags", type=str, help="Xuất danh sách Tags ra file JSON (VD: tags.json)")
+    parser.add_argument("-iT", "--import-tags", type=str, help="Nhập danh sách Tags từ file JSON (VD: tags.json)")
+    parser.add_argument("-eN", "--export-notify", type=str, help="Xuất danh sách Notify ra file JSON (VD: notify.json)")
+    parser.add_argument("-iN", "--import-notify", type=str, help="Nhập danh sách Notify từ file JSON (VD: notify.json)")
+    parser.add_argument("-l", "--list", action="store_true", help="Liệt kê danh sách Monitor")
+    parser.add_argument("-d", "--delete", action="store_true", help="Xóa tất cả các Monitor")
+    parser.add_argument("-k", "--clean-up", action="store_true", help="Dọn dẹp dữ liệu (events, heartbeats, stats)")
+    args = parser.parse_args()
+    
+    # Kiểm tra các tham số sau không được conflict
+    selected_options = sum(bool(arg) for arg in [args.export_all, args.import_all, args.export_monitor, args.import_monitor, args.list, args.delete, args.export_tags, args.import_tags, args.export_notify, args.import_notify, args.clean_up])
+    if selected_options > 1:
+        print("[x] Lỗi: Chỉ được phép sử dụng **một** trong các tham số!")
+        exit(1)
+
+    main(args)
