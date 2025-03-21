@@ -19,21 +19,13 @@ python3 api.py -u 192.168.0.200 -a auth_server2.txt
 ```
 
 ```sh
-# export notify file
-python3 api.py -u 192.168.0.100 -eN notify.json
-# export tags file
-python3 api.py -u 192.168.0.100 -eT tags.json
-# export monitors file
-python3 api.py -u 192.168.0.100 -eM monitors.json
+# export notify, tags and monitor files
+python3 api.py -u 192.168.0.100 -eA
 ```
 
 ```sh
-# import notify file
-python3 api.py -u 192.168.0.200 -iN notify.json
-# import tags file
-python3 api.py -u 192.168.0.200 -iT tags.json
-# import monitors file
-python3 api.py -u 192.168.0.200 -iM monitors.json
+# import notify, tags and monitor files
+python3 api.py -u 192.168.0.200 -iA
 ```
 
 ## Usage
